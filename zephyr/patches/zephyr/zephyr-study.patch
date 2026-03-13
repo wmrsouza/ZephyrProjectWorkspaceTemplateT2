@@ -1,0 +1,85 @@
+=== diff for zephyr (zephyr):
+diff --git zephyr/drivers/gpio/gpio_hogs.c zephyr/drivers/gpio/gpio_hogs.c
+index 2bc082acc60..6143c2dc580 100644
+--- zephyr/drivers/gpio/gpio_hogs.c
++++ zephyr/drivers/gpio/gpio_hogs.c
+@@ -106,10 +106,12 @@ static int gpio_hogs_init(void)
+ 			LOG_ERR("GPIO port %s not ready", hogs->port->name);
+ 			return -ENODEV;
+ 		}
++		LOG_INF("GPIO port %s is ready", hogs->port->name);
+ 
+ 		for (j = 0; j < hogs->num_specs; j++) {
+ 			spec = &hogs->specs[j];
+ 
++			LOG_INF("%s.%u", hogs->port->name, (unsigned int)spec->pin);
+ 			err = gpio_pin_configure(hogs->port, spec->pin, spec->flags);
+ 			if (err < 0) {
+ 				LOG_ERR("failed to configure GPIO hog for port %s pin %u (err %d)",
+diff --git zephyr/drivers/gpio/gpio_pcf857x.c zephyr/drivers/gpio/gpio_pcf857x.c
+index 55718a5e598..04c56aff38c 100644
+--- zephyr/drivers/gpio/gpio_pcf857x.c
++++ zephyr/drivers/gpio/gpio_pcf857x.c
+@@ -172,8 +172,10 @@ static int pcf857x_port_set_raw(const struct device *dev, uint16_t mask, uint16_
+ 		return -EWOULDBLOCK;
+ 	}
+ 
+-	if ((drv_data->pins_cfg.configured_as_outputs & value) != value) {
+-		LOG_ERR("Pin(s) is/are configured as input which should be output.");
++	// LOG_INF("%s outputs:0x%02X value:0x%02X", dev->name, (unsigned)drv_data->pins_cfg.configured_as_outputs, value);
++	/* Reject if any pin we are changing (mask) is not configured as output */
++	if ((mask & ~drv_data->pins_cfg.configured_as_outputs) != 0) {
++		LOG_ERR("One or more pins in mask are not configured as output");
+ 		return -EOPNOTSUPP;
+ 	}
+ 
+@@ -219,16 +221,17 @@ static int pcf857x_pin_configure(const struct device *dev, gpio_pin_t pin, gpio_
+ 	}
+ 	if (flags & GPIO_INPUT) {
+ 		temp_outputs &= ~BIT(pin);
++		/* PCF857x: input pins must be written 1 (high-Z); ignore OUTPUT_INIT_* for inputs */
+ 		temp_pins |= (1 << pin);
+ 	} else if (flags & GPIO_OUTPUT) {
+ 		drv_data->pins_cfg.configured_as_outputs |= BIT(pin);
+ 		temp_outputs = drv_data->pins_cfg.configured_as_outputs;
+-	}
+-	if (flags & GPIO_OUTPUT_INIT_HIGH) {
+-		temp_pins |= (1 << pin);
+-	}
+-	if (flags & GPIO_OUTPUT_INIT_LOW) {
+-		temp_pins &= ~(1 << pin);
++		if (flags & GPIO_OUTPUT_INIT_HIGH) {
++			temp_pins |= (1 << pin);
++		}
++		if (flags & GPIO_OUTPUT_INIT_LOW) {
++			temp_pins &= ~(1 << pin);
++		}
+ 	}
+ 
+ 	ret = pcf857x_port_set_raw(dev, drv_data->pins_cfg.configured_as_outputs, temp_pins, 0);
+@@ -339,6 +342,7 @@ static int pcf857x_init(const struct device *dev)
+ 		LOG_ERR("%s is not ready", drv_cfg->i2c.bus->name);
+ 		return -ENODEV;
+ 	}
++	LOG_INF("%s is ready", drv_cfg->i2c.bus->name);
+ 
+ 	/* If the INT line is available, configure the callback for it. */
+ 	if (drv_cfg->gpio_int.port) {
+diff --git zephyr/drivers/input/input_gpio_kbd_matrix.c zephyr/drivers/input/input_gpio_kbd_matrix.c
+index 3671b9de4d8..3664bae3784 100644
+--- zephyr/drivers/input/input_gpio_kbd_matrix.c
++++ zephyr/drivers/input/input_gpio_kbd_matrix.c
+@@ -202,8 +202,10 @@ static int gpio_kbd_matrix_init(const struct device *dev)
+ 		}
+ 
+ 		if (cfg->col_drive_inactive) {
++			LOG_INF("%s[%u]: GPIO_OUTPUT_INACTIVE", gpio->port->name, gpio->pin);
+ 			ret = gpio_pin_configure_dt(gpio, GPIO_OUTPUT_INACTIVE);
+ 		} else {
++			LOG_INF("%s[%u]: GPIO_INPUT", gpio->port->name, gpio->pin);
+ 			ret = gpio_pin_configure_dt(gpio, GPIO_INPUT);
+ 		}
+ 		if (ret != 0) {
+
+
+Empty diff in 0 projects.

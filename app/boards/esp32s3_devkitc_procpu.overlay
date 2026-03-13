@@ -1,0 +1,113 @@
+#include <zephyr/dt-bindings/input/input-event-codes.h>
+#include <zephyr/dt-bindings/input/keymap.h>
+
+/ {
+
+	/* chosen { */
+	/* 	zephyr,console = &uart0; */
+	/* 	zephyr,shell-uart = &uart0; */
+	/* }; */
+
+	/* aliases { */
+	/* 	led0 = &white_led; */
+	/* 	sw0  = &button0; */
+	/* }; */
+
+	/* leds { */
+	/* 	compatible = "gpio-leds"; */
+	/**/
+	/* 	white_led: led_2 { */
+	/* 		gpios = <&gpio0 18 GPIO_ACTIVE_HIGH>; */
+	/* 		label = "Blue - LED2"; */
+	/* 	}; */
+	/**/
+	/* 	back_light_led_k: led_k { */
+	/* 		gpios = <&gpio0 21 GPIO_ACTIVE_HIGH>; */
+	/* 		label = "back_light - LED_K"; */
+	/* 	}; */
+	/* }; */
+
+	/* 3x3 keyboard matrix on ext_gpio0 (PCF8574 @ i2c1). Hardware:
+	 * - Cols: P0,P1,P2 via diodes (anode=col, cathode=PCF8574). No GPIO_PULL_UP/PULL_DOWN on PCF857x.
+	 * - Rows: P3,P4,P5 with external pull-ups to VCC; rows read as inputs.
+	 */
+	kbd: kbd-matrix {
+		compatible = "gpio-kbd-matrix";
+		status = "okay";
+		idle-mode = "poll";
+		poll-period-ms = <5>;
+		stable-poll-period-ms = <5>;
+		poll-timeout-ms = <25>;
+		debounce-down-ms = <5>;
+		debounce-up-ms = <5>;
+		settle-time-us = <110>;
+		no-ghostkey-check;
+		col-drive-inactive;
+		col-gpios = <&ext_gpio0 0 GPIO_ACTIVE_LOW>,
+			    <&ext_gpio0 1 GPIO_ACTIVE_LOW>,
+			    <&ext_gpio0 2 GPIO_ACTIVE_LOW>;
+		row-gpios = <&ext_gpio0 3 GPIO_ACTIVE_LOW>,
+			    <&ext_gpio0 4 GPIO_ACTIVE_LOW>,
+			    <&ext_gpio0 5 GPIO_ACTIVE_LOW>;
+
+		keymap: keymap {
+			compatible = "input-keymap";
+			keymap = <MATRIX_KEY(0, 0, INPUT_KEY_7)
+				  MATRIX_KEY(0, 1, INPUT_KEY_1)
+				  MATRIX_KEY(0, 2, INPUT_KEY_2)
+				  MATRIX_KEY(1, 0, INPUT_KEY_3)
+				  MATRIX_KEY(1, 1, INPUT_KEY_5)
+				  MATRIX_KEY(1, 2, INPUT_KEY_6)
+				  MATRIX_KEY(2, 0, INPUT_KEY_7)
+				  MATRIX_KEY(2, 1, INPUT_KEY_8)
+				  MATRIX_KEY(2, 2, INPUT_KEY_9)>;
+			row-size = <3>;
+			col-size = <3>;
+		};
+	};
+};
+
+/* &pinctrl { */
+/*   i2c1_default: i2c1_default { */
+/*     group1 { */
+/*       pinmux = <I2C1_SDA_GPIO5>, */
+/*           <I2C1_SCL_GPIO6>; */
+/*       bias-pull-up; */
+/*       drive-open-drain; */
+/*       output-high; */
+/*     }; */
+/*   }; */
+/* }; */
+
+&i2c1 {
+	status = "okay";
+
+	clock-frequency = <I2C_BITRATE_STANDARD>;
+	pinctrl-0 = <&i2c1_default>;
+	pinctrl-names = "default";
+
+	ext_gpio0: pcf8574@20 {
+		compatible = "nxp,pcf857x";
+    status = "okay";
+
+		reg = <0x20>;
+		gpio-controller;
+		ngpios = <8>;
+		#gpio-cells = <2>;
+		/* int-gpios = <&gpio0 4 (GPIO_PULL_UP | GPIO_ACTIVE_LOW)>; */
+	};
+};
+
+/* &gpio0 { */
+/*   gpio0_p18: P18 { */
+/*     gpio-hog; */
+/*     gpios = <18 GPIO_ACTIVE_HIGH>; */
+/*     output-low; */
+/*   }; */
+/**/
+/*   gpio0_p21: P21 { */
+/*     gpio-hog; */
+/*     gpios = <21 GPIO_ACTIVE_LOW>; */
+/*     output-high; */
+/*   }; */
+/* }; */

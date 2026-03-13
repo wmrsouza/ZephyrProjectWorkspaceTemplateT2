@@ -1,0 +1,10 @@
+patches:
+  - path: zephyr/zephyr-study.patch
+    sha256sum: 51a3abf72ed614bcdec815605c55908afc392e74294a0790abd608310c9f1b22
+    module: zephyr
+    author: galera
+    email: people@us.org
+    date: 2026-03-12
+    upstreamable: false
+    comments: |
+      A fast bugfix we need for Zephyr.
